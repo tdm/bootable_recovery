@@ -75,9 +75,5 @@ bool start_sdcard_fuse(const char* path) {
                               std::placeholders::_3);
   vtab.close = [&fd]() { close(fd.fd); };
 
-  // The installation process expects to find the sdcard unmounted. Unmount it with MNT_DETACH so
-  // that our open file continues to work but new references see it as unmounted.
-  umount2("/sdcard", MNT_DETACH);
-
   return run_fuse_sideload(vtab, fd.file_size, fd.block_size) == 0;
 }

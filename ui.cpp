@@ -59,6 +59,7 @@ RecoveryUI::RecoveryUI()
       brightness_file_(BRIGHTNESS_FILE),
       max_brightness_file_(MAX_BRIGHTNESS_FILE),
       touch_screen_allowed_(true),
+      volumes_changed_(false),
       kTouchLowThreshold(RECOVERY_UI_TOUCH_LOW_THRESHOLD),
       kTouchHighThreshold(RECOVERY_UI_TOUCH_HIGH_THRESHOLD),
       key_queue_len(0),
@@ -433,6 +434,9 @@ void RecoveryUI::ProcessKey(int key_code, int updown) {
 
       case RecoveryUI::REBOOT:
         if (reboot_enabled) {
+#ifndef VERIFIER_TEST
+          vdc->unmountAll();
+#endif
           reboot("reboot,");
           while (true) {
             pause();
@@ -477,6 +481,7 @@ void RecoveryUI::EnqueueKey(int key_code) {
 
 int RecoveryUI::WaitKey() {
   pthread_mutex_lock(&key_queue_mutex);
+  int timeouts = UI_WAIT_KEY_TIMEOUT_SEC;
 
   // Time out after UI_WAIT_KEY_TIMEOUT_SEC, unless a USB cable is
   // plugged in.
@@ -490,7 +495,20 @@ int RecoveryUI::WaitKey() {
 
     int rc = 0;
     while (key_queue_len == 0 && rc != ETIMEDOUT) {
-      rc = pthread_cond_timedwait(&key_queue_cond, &key_queue_mutex, &timeout);
+      struct timespec key_timeout;
+      gettimeofday(&now, nullptr);
+      key_timeout.tv_sec = now.tv_sec + 1;
+      key_timeout.tv_nsec = now.tv_usec * 1000;
+      rc = pthread_cond_timedwait(&key_queue_cond, &key_queue_mutex, &key_timeout);
+      if (rc == ETIMEDOUT) {
+        if (VolumesChanged()) {
+          pthread_mutex_unlock(&key_queue_mutex);
+          return KEY_REFRESH;
+        }
+        if (key_timeout.tv_sec <= timeout.tv_sec) {
+          rc = 0;
+        }
+      }
     }
 
     if (screensaver_state_ != ScreensaverState::DISABLED) {
@@ -636,4 +654,10 @@ void RecoveryUI::SetEnableReboot(bool enabled) {
   pthread_mutex_lock(&key_queue_mutex);
   enable_reboot = enabled;
   pthread_mutex_unlock(&key_queue_mutex);
+}
+
+bool RecoveryUI::VolumesChanged() {
+    bool ret = volumes_changed_;
+    volumes_changed_ = false;
+    return ret;
 }
