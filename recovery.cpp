@@ -1232,24 +1232,22 @@ refresh:
 
     int status = INSTALL_ERROR;
 
-    for (;;) {
-        int chosen = get_menu_selection(headers, menu_items, 0, 0, device);
-        for (i = 0; i < n; ++i) {
-            free(menu_items[i]);
-        }
-        if (chosen == Device::kRefresh) {
-            goto refresh;
-        }
-        if (chosen == Device::kGoBack) {
-            break;
-        }
-        if (chosen == item_sideload) {
-            status = apply_from_adb(wipe_cache, TEMPORARY_INSTALL_FILE);
-        }
-        else {
-            std::string id = volumes[chosen - 1].mId;
-            status = apply_from_storage(device, id, wipe_cache);
-        }
+    int chosen = get_menu_selection(headers, menu_items, 0, 0, device);
+    for (i = 0; i < n; ++i) {
+        free(menu_items[i]);
+    }
+    if (chosen == Device::kRefresh) {
+        goto refresh;
+    }
+    if (chosen == Device::kGoBack) {
+        return INSTALL_NONE;
+    }
+    if (chosen == item_sideload) {
+        status = apply_from_adb(wipe_cache, TEMPORARY_INSTALL_FILE);
+    }
+    else {
+        std::string id = volumes[chosen - 1].mId;
+        status = apply_from_storage(device, id, wipe_cache);
     }
 
     return status;
