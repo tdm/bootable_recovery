@@ -44,6 +44,11 @@
 
 #include "voldclient.h"
 
+#ifdef __bitwise
+#undef __bitwise
+#endif
+#include <blkid/blkid.h>
+
 static struct fstab* fstab = nullptr;
 
 extern struct selabel_handle* sehandle;
@@ -125,7 +130,31 @@ void load_volume_table() {
 }
 
 Volume* volume_for_mount_point(const std::string& mount_point) {
-  return fs_mgr_get_entry_for_mount_point(fstab, mount_point);
+  Volume *rec = fs_mgr_get_entry_for_mount_point(fstab, mount_point);
+
+  if (rec == nullptr) {
+    return rec;
+  }
+
+  if (strcmp(rec->fs_type, "ext4") == 0 || strcmp(rec->fs_type, "f2fs") == 0 ||
+      strcmp(rec->fs_type, "vfat") == 0) {
+    char *detected_fs_type = blkid_get_tag_value(nullptr, "TYPE", rec->blk_device);
+
+    if (detected_fs_type == nullptr) {
+      return rec;
+    }
+
+    Volume *fetched_rec = rec;
+    while (rec != nullptr && strcmp(rec->fs_type, detected_fs_type) != 0) {
+      rec = fs_mgr_get_entry_for_mount_point_after(rec, fstab, path);
+    }
+
+    if (rec == nullptr) {
+      return fetched_rec;
+    }
+  }
+
+  return rec;
 }
 
 // Finds the volume specified by the given path. fs_mgr_get_entry_for_mount_point() does exact match
@@ -136,7 +165,7 @@ static Volume* volume_for_path(const char* path) {
   if (path == nullptr || path[0] == '\0') return nullptr;
   std::string str(path);
   while (true) {
-    Volume* result = fs_mgr_get_entry_for_mount_point(fstab, str);
+    Volume* result = volume_for_mount_point(str);
     if (result != nullptr || str == "/") {
       return result;
     }
