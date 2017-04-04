@@ -65,8 +65,9 @@ class Device : public VoldWatcher {
     SHUTDOWN = 8,
     VIEW_RECOVERY_LOGS = 9,
     MOUNT_SYSTEM = 10,
-    RUN_GRAPHICS_TEST = 11,
-    RUN_LOCALE_TEST = 12,
+    MOUNT_SYSTEM = 11,
+    RUN_GRAPHICS_TEST = 12,
+    RUN_LOCALE_TEST = 13,
   };
 
   // Return the list of menu items (an array of strings, NULL-terminated). The menu_position passed
