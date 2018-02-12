@@ -2,6 +2,5 @@ subdirs = [
     "applypatch",
     "edify",
     "otafault",
-    "otautil",
     "uncrypt",
 ]
