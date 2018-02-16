@@ -24,6 +24,7 @@ LOCAL_SRC_FILES := \
     rangeset.cpp
 
 LOCAL_STATIC_LIBRARIES := \
+    libziparchive \
     libselinux \
     libbase
 
