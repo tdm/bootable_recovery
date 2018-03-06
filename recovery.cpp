@@ -1340,6 +1340,11 @@ static Device::BuiltinAction prompt_and_wait(Device* device, int status) {
           }
         }
         break;
+      case Device::TOGGLE_VERIFY:
+        if (yes_no(device, "Toggle verify?",
+            verify_enable ? "  Currently enabled" : "  Currently disabled")) {
+          verify_enable = !verify_enable;
+        }
     }
   }
 }
