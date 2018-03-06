@@ -207,6 +207,9 @@ LOCAL_STATIC_LIBRARIES += \
     libselinux \
     libz
 
+LOCAL_WHOLE_STATIC_LIBRARIES += \
+    libawk_main
+
 # Libraries for FS tools
 LOCAL_WHOLE_STATIC_LIBRARIES += \
     libfuse_static
@@ -303,6 +306,7 @@ RECOVERY_TOOLS := \
     unzip \
     zip \
     vdc \
+    awk \
     $(FILESYSTEM_TOOLS)
 LOCAL_POST_INSTALL_CMD := $(hide) $(foreach t,$(RECOVERY_TOOLS),ln -sf ${LOCAL_MODULE} $(LOCAL_MODULE_PATH)/$(t);)
 
