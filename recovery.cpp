@@ -841,6 +841,15 @@ static bool yes_no(Device* device, const char* question1, const char* question2)
     return (chosen_item == 1);
 }
 
+static bool ask_to_continue_unverified_install(Device* device) {
+#ifdef RELEASE_BUILD
+    return false;
+#else
+    ui->SetProgressType(RecoveryUI::EMPTY);
+    return yes_no(device, "Signature verification failed", "Install anyway?");
+#endif
+}
+
 static bool ask_to_wipe_data(Device* device) {
     return yes_no(device, "Wipe all user data?", "  THIS CAN NOT BE UNDONE!");
 }
@@ -1216,7 +1225,13 @@ static int apply_from_storage(Device* device, const std::string& id, bool* wipe_
         vdc->volumeUnmount(vi.mId, true);
 
         result = install_package(FUSE_SIDELOAD_HOST_PATHNAME, wipe_cache,
-                                 TEMPORARY_INSTALL_FILE, false, 0/*retry_count*/);
+                                 TEMPORARY_INSTALL_FILE, false, 0/*retry_count*/,
+                                 true/*verify*/);
+        if (status == INSTALL_UNVERIFIED &&
+          ask_to_continue_unverified_install(device)) {
+            status = install_package(FUSE_SIDELOAD_HOST_PATHNAME, wipe_cache,
+                                     TEMPORARY_INSTALL_FILE, false, 0/*retry_count*/,
+                                     false/*verify*/);
         break;
     }
 
@@ -1266,7 +1281,11 @@ refresh:
         return INSTALL_NONE;
     }
     if (chosen == item_sideload) {
-        status = apply_from_adb(wipe_cache, TEMPORARY_INSTALL_FILE);
+        status = apply_from_adb(wipe_cache, TEMPORARY_INSTALL_FILE, true);
+        if (status == INSTALL_UNVERIFIED &&
+          ask_to_continue_unverified_install(device)) {
+            status = apply_from_adb(wipe_cache, TEMPORARY_INSTALL_FILE, false);
+        }
     }
     else {
         std::string id = volumes[chosen - 1].mId;
@@ -1863,7 +1882,7 @@ int main(int argc, char **argv) {
       }
 
       status = install_package(update_package, &should_wipe_cache, TEMPORARY_INSTALL_FILE, true,
-                               retry_count);
+                               retry_count, true);
       if (status == INSTALL_SUCCESS && should_wipe_cache) {
         wipe_cache(false, device);
       }
@@ -1924,7 +1943,7 @@ int main(int argc, char **argv) {
     if (!sideload_auto_reboot) {
       ui->ShowText(true);
     }
-    status = apply_from_adb(&should_wipe_cache, TEMPORARY_INSTALL_FILE);
+    status = apply_from_adb(&should_wipe_cache, TEMPORARY_INSTALL_FILE, true);
     if (status == INSTALL_SUCCESS && should_wipe_cache) {
       if (!wipe_cache(false, device)) {
         status = INSTALL_ERROR;

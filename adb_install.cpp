@@ -70,7 +70,7 @@ static void maybe_restart_adbd() {
   }
 }
 
-int apply_from_adb(bool* wipe_cache, const char* install_file) {
+int apply_from_adb(bool* wipe_cache, const char* install_file, bool verify) {
   modified_flash = true;
 
   stop_adbd();
@@ -114,7 +114,7 @@ int apply_from_adb(bool* wipe_cache, const char* install_file) {
       }
     }
     set_perf_mode(true);
-    result = install_package(FUSE_SIDELOAD_HOST_PATHNAME, wipe_cache, install_file, false, 0);
+    result = install_package(FUSE_SIDELOAD_HOST_PATHNAME, wipe_cache, install_file, false, 0, verify);
     break;
   }
 
